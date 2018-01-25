@@ -1,0 +1,3 @@
+[submodule "lib/NanoESP"]
+	path = lib/NanoESP
+	url = https://github.com/jawsper/NanoESP
