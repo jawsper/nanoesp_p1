@@ -88,8 +88,8 @@ void setup() {
 
     if(!load_config()) {
         // Serial.println(F("EEPROM invalid!"));
+        memset(&config, 0, sizeof(config));
 
-        memset(&config, sizeof(config), 0);
         strcpy(config.influx_ip_address, INFLUXDB_IP);
         config.influx_port = INFLUXDB_PORT;
         strcpy(config.influx_database, INFLUXDB_DATABASE);
@@ -127,7 +127,7 @@ bool parse_command(const String& command, String& reply) {
         return true;
     }*/ else if(command.startsWith(F("ip="))) {
         String ip = command.substring(3);
-        memset(config.influx_ip_address, sizeof(config.influx_ip_address), 0);
+        memset(config.influx_ip_address, 0, sizeof(config.influx_ip_address));
         strcpy(config.influx_ip_address, ip.c_str());
         save_config();
         influx.setConnection(String(config.influx_ip_address), config.influx_port);
@@ -142,7 +142,7 @@ bool parse_command(const String& command, String& reply) {
         return true;
     } else if(command.startsWith(F("database="))) {
         String database = command.substring(9);
-        memset(config.influx_database, sizeof(config.influx_database), 0);
+        memset(config.influx_database, 0, sizeof(config.influx_database));
         strcpy(config.influx_database, database.c_str());
         save_config();
         influx.setDatabase(String(config.influx_database));
