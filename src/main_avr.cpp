@@ -56,19 +56,23 @@ void save_config() {
 void reset() {
     digitalWrite(PIN_ENABLE_P1, LOW);
     digitalWrite(LED_WLAN, LOW);
-    nanoesp.init();
+    if(!nanoesp.init()) {
+        Serial.println(F("nanoesp init failed..."));
+    }
     // Connect with WiFi
     Serial.print(F("Connecting to SSID \""));
     Serial.print(config.ssid);
     Serial.println(F("\""));
     while(!nanoesp.wifiConnected()) {
-            Serial.println(F("Wifi connected!"));
         if(nanoesp.configWifi(STATION, config.ssid, config.psk)) {
+            break;
         } else {
             Serial.println(F("Wifi connection failed!"));
-            delay(500);
+            return;
         }
     }
+    Serial.println(F("Wifi connected!"));
+
 
     String ip, mac;
     nanoesp.getIpMac(ip, mac);
@@ -93,7 +97,8 @@ void setup() {
     Serial.println(F("NanoESP_P1 init"));
 
     if(!load_config()) {
-        // Serial.println(F("EEPROM invalid!"));
+        Serial.println(F("EEPROM invalid!"));
+
         memset(&config, 0, sizeof(config));
 
         strcpy(config.influx_ip_address, INFLUXDB_IP);
@@ -106,7 +111,7 @@ void setup() {
 
         save_config();
     } else {
-        // Serial.println(F("EEPROM valid!"));
+        Serial.println(F("EEPROM valid!"));
     }
 
     Serial.println(F("====CONFIG===="));
