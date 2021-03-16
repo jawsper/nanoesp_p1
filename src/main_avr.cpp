@@ -23,6 +23,9 @@ struct config_t {
     char influx_ip_address[16];
     uint16_t influx_port;
     char influx_database[16];
+
+    char ssid[32];
+    char psk[32];
 } config;
 
 bool parse_command(const String&, String&);
@@ -55,9 +58,12 @@ void reset() {
     digitalWrite(LED_WLAN, LOW);
     nanoesp.init();
     // Connect with WiFi
+    Serial.print(F("Connecting to SSID \""));
+    Serial.print(config.ssid);
+    Serial.println(F("\""));
     while(!nanoesp.wifiConnected()) {
-        if(nanoesp.configWifi(STATION, SSID, PASSWORD)) {
             Serial.println(F("Wifi connected!"));
+        if(nanoesp.configWifi(STATION, config.ssid, config.psk)) {
         } else {
             Serial.println(F("Wifi connection failed!"));
             delay(500);
@@ -94,6 +100,10 @@ void setup() {
         config.influx_port = INFLUXDB_PORT;
         strcpy(config.influx_database, INFLUXDB_DATABASE);
 
+        strcpy(config.ssid, SSID);
+        strcpy(config.psk, PASSWORD);
+
+
         save_config();
     } else {
         // Serial.println(F("EEPROM valid!"));
@@ -106,6 +116,11 @@ void setup() {
     Serial.println(config.influx_port);
     Serial.print(F("Influx Database: "));
     Serial.println(config.influx_database);
+    Serial.print(F("SSID: "));
+    Serial.println(config.ssid);
+    Serial.print(F("PSK: "));
+    Serial.println(config.psk);
+    Serial.println(F("=============="));
 
     influx.setConnection(String(config.influx_ip_address), config.influx_port);
     influx.setDatabase(String(config.influx_database));
@@ -119,7 +134,14 @@ bool parse_command(const String& command, String& reply) {
     Serial.println("Command: \"" + command + "\"");
 
     if(command.startsWith(F("config"))) {
-        reply = "Influx config:\r\nIP: " + String(config.influx_ip_address) + "\r\nPort: " + String(config.influx_port) + "\r\nDatabase: " + String(config.influx_database);
+        reply = "Config:" \
+            "\r\nSSID: " + String(config.ssid) +
+            "\r\nPSK: " + String(config.psk) +
+            "\r\nInflux config:" +
+            "\r\nIP: " + String(config.influx_ip_address) +
+            "\r\nPort: " + String(config.influx_port) +
+            "\r\nDatabase: " + String(config.influx_database);
+            
         return true;
     }/* else if(command.startsWith(F("AT"))) {
         nanoesp.println(command);
@@ -148,6 +170,20 @@ bool parse_command(const String& command, String& reply) {
         influx.setDatabase(String(config.influx_database));
         reply = F("Config saved!");
         return true;
+    } else if(command.startsWith(F("ssid="))) {
+        String ssid = command.substring(5);
+        memset(config.ssid, 0, sizeof(config.ssid));
+        strcpy(config.ssid, ssid.c_str());
+        save_config();
+        reply = F("Config saved!");
+        return true;
+    } else if(command.startsWith(F("psk="))) {
+        String psk = command.substring(4);
+        memset(config.psk, 0, sizeof(config.psk));
+        strcpy(config.psk, psk.c_str());
+        save_config();
+        reply = F("Config saved!");
+        return true;
     } else if(command.startsWith(F("test"))) {
         if(influx.writeData("test_measurement", "host=poweresp", "testing=\"time\"")) {
             reply = F("Data written successfully!");
@@ -162,8 +198,12 @@ bool parse_command(const String& command, String& reply) {
             reply = F("No status");
         }
         return true;
+    } else if(command.startsWith(F("reset"))) {
+        nanoesp.disconnectWifi();
+        reset();
+        return true;
     } else if(command.startsWith(F("help"))) {
-        reply = F("help : this help function\r\nconfig : get current config\r\nip=<address> : sets influx ip\r\nport=<port> : sets influx port\r\ndatabase=<name> : sets influx database name\r\nstatus : get last status");
+        reply = F("help : this help function\r\nconfig : get current config\r\nip=<address> : sets influx ip\r\nport=<port> : sets influx port\r\ndatabase=<name> : sets influx database name\r\nstatus : get last status\r\nreset : reset Wifi connection\r\nssid=<ssid> : set SSID\r\npsk=<psk> : set PSK");
         return true;
     }
 
